@@ -1,24 +1,60 @@
 const express = require("express");
-const app = express();
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
+const app = express();
 app.use(express.json());
 
-// ROTA PRINCIPAL
-app.get("/", (req, res) => {
-  res.send("Block Jogos ONLINE 🚀");
+// “banco de dados” simples (depois trocamos por MongoDB)
+const users = [];
+
+// CHAVE DO TOKEN (depois a gente melhora isso)
+const SECRET = "block-jogos-secret";
+
+// REGISTRO
+app.post("/register", async (req, res) => {
+  const { username, password } = req.body;
+
+  const hash = await bcrypt.hash(password, 10);
+
+  users.push({
+    username,
+    password: hash
+  });
+
+  res.json({ message: "Usuário criado com sucesso" });
 });
 
-// TESTE DE PRODUTOS (exemplo futuro da loja)
-app.get("/products", (req, res) => {
-  res.json([
-    { id: 1, nome: "Item 1", preco: 10 },
-    { id: 2, nome: "Item 2", preco: 20 }
-  ]);
+// LOGIN
+app.post("/login", async (req, res) => {
+  const { username, password } = req.body;
+
+  const user = users.find(u => u.username === username);
+  if (!user) return res.status(400).json({ error: "Usuário não existe" });
+
+  const match = await bcrypt.compare(password, user.password);
+  if (!match) return res.status(400).json({ error: "Senha inválida" });
+
+  const token = jwt.sign({ username }, SECRET, { expiresIn: "2h" });
+
+  res.json({ token });
 });
 
-// PORTA DO RENDER
+// ROTA PROTEGIDA (teste)
+app.get("/dashboard", (req, res) => {
+  const auth = req.headers.authorization;
+
+  if (!auth) return res.status(401).json({ error: "Sem token" });
+
+  try {
+    const decoded = jwt.verify(auth.split(" ")[1], SECRET);
+    res.json({ message: "Bem-vindo " + decoded.username });
+  } catch {
+    res.status(401).json({ error: "Token inválido" });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
-
 app.listen(PORT, () => {
   console.log("Servidor rodando na porta " + PORT);
 });
