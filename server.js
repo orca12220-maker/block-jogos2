@@ -53,3 +53,9 @@ app.post("/login", express.urlencoded({ extended: true }), async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT);
+app.get("/dashboard", (req, res) => {
+  res.send(`
+    <h1>Dashboard Block Jogos 🚀</h1>
+    <p>Você está logado (teste simples)</p>
+  `);
+});
