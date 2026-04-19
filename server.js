@@ -1,61 +1,44 @@
 const express = require("express");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
 
 const app = express();
 app.use(express.json());
 
-const users = [];
-const SECRET = "block-secret";
+// 🔗 CONEXÃO MONGODB
+mongoose.connect("mongodb+srv://Pedro:Orca1234@cluster0.lk9kiqy.mongodb.net/?appName=Cluster0");
 
-// 🔹 PÁGINA LOGIN (FRONTEND DENTRO DO BACKEND)
+mongoose.connection.on("connected", () => {
+  console.log("MongoDB conectado 🚀");
+});
+
+// 🧠 MODELO DE USUÁRIO
+const User = mongoose.model("User", {
+  username: String,
+  password: String
+});
+
+// 🔐 REGISTRO
+app.post("/register", async (req, res) => {
+  const user = new User(req.body);
+  await user.save();
+  res.json({ message: "Usuário criado" });
+});
+
+// 🔐 LOGIN (simples por enquanto)
+app.post("/login", async (req, res) => {
+  const user = await User.findOne(req.body);
+  if (!user) return res.status(400).json({ error: "Inválido" });
+
+  res.json({ message: "Login OK 🚀" });
+});
+
+// 🧪 TESTE
 app.get("/", (req, res) => {
-  res.send(`
-  <html>
-  <body style="font-family:sans-serif;text-align:center;background:#111;color:white">
-
-    <h1>Block Jogos LOGIN</h1>
-
-    <form method="POST" action="/login">
-      <input name="username" placeholder="usuário"><br><br>
-      <input name="password" type="password" placeholder="senha"><br><br>
-      <button type="submit">Entrar</button>
-    </form>
-
-  </body>
-  </html>
-  `);
+  res.send("Block Jogos ONLINE 🚀");
 });
 
-// 🔹 LOGIN REAL
-app.post("/login", express.urlencoded({ extended: true }), async (req, res) => {
-  const { username, password } = req.body;
-
-  let user = users.find(u => u.username === username);
-
-  if (!user) {
-    const hash = await bcrypt.hash(password, 10);
-    users.push({ username, password: hash });
-    user = { username, password: hash };
-  }
-
-  const match = await bcrypt.compare(password, user.password);
-  if (!match) return res.send("Senha errada");
-
-  const token = jwt.sign({ username }, SECRET, { expiresIn: "2h" });
-
-  res.send(`
-    <h2>Logado com sucesso 🚀</h2>
-    <p>Token: ${token}</p>
-    <a href="/">voltar</a>
-  `);
-});
-
+// PORTA RENDER
 const PORT = process.env.PORT || 3000;
-app.listen(PORT);
-app.get("/dashboard", (req, res) => {
-  res.send(`
-    <h1>Dashboard Block Jogos 🚀</h1>
-    <p>Você está logado (teste simples)</p>
-  `);
+app.listen(PORT, () => {
+  console.log("Servidor rodando");
 });
